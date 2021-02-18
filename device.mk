@@ -94,6 +94,10 @@ PRODUCT_PACKAGES += \
     nvaudio_fx.xml
 endif
 
+# Joycons
+PRODUCT_PACKAGES += \
+    jc_setup
+
 # Kernel Modules
 PRODUCT_PACKAGES += \
     cypress-fmac
