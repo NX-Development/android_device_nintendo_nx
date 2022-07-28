@@ -1,4 +1,4 @@
-# Copyright (C) 2019 The LineageOS Project
+# Copyright (C) 2022 The LineageOS Project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,9 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import init.recovery.foster_common.rc
+# Inherit some common TWRP stuff.
+$(call inherit-product, vendor/twrp/config/common.mk)
 
-on init
-    setprop persist.twrp.rotation 270
-    setprop ro.minui.default_rotation "ROTATION_LEFT"
-    write /sys/bus/platform/drivers/tegra-reboot2payload/r2p/default_payload_ready 1
+# Inherit full configuration for nx.
+include device/nintendo/icosa/lineage.mk
+$(call inherit-product, device/nintendo/icosa/full_icosa.mk)
+
+PRODUCT_NAME := twrp_nx
+PRODUCT_DEVICE := nx

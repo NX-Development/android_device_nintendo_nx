@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import /vendor/etc/init/hw/init.icosa_common.rc
+import /vendor/etc/init/hw/init.nx_common.rc
 
 on fs
-    mount_all /vendor/etc/fstab.icosa_emmc
-    swapon_all /vendor/etc/fstab.icosa_emmc
+    mount_all /vendor/etc/fstab.nx
+    swapon_all /vendor/etc/fstab.nx
