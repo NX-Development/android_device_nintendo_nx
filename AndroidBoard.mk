@@ -13,7 +13,6 @@
 # limitations under the License.
 
 INSTALLED_KERNEL_TARGET := $(PRODUCT_OUT)/kernel
-INSTALLED_RECOVERYIMAGE_TARGET := $(PRODUCT_OUT)/recovery.img
 
 DTB_TARGETS := tegra210-icosa.dtb
 INSTALLED_DTB_TARGETS := $(DTB_TARGETS:%=$(PRODUCT_OUT)/install/%)
