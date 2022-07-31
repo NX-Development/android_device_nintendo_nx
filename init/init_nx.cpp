@@ -68,7 +68,8 @@ void vendor_set_nrdp_props(tegra_init *ti)
 void vendor_load_properties()
 {
 	//                                              device name      model     id sku api dpi
-	std::vector<tegra_init::devices> devices = { { "nx",   "nx",     "Switch", 20, 1, 27, 320 } };
+	std::vector<tegra_init::devices> devices = { { "nx",   "nx",     "Switch", 20, 1, 27, 320 },
+	                                             { "nx",   "nx_tab", "Switch", 20, 0, 27, 240 } };
 
 	tegra_init ti(devices);
 

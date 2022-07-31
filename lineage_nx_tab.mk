@@ -12,10 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ifneq ($(filter $(TARGET_DEVICE), nx nx_tab),)
+# Inherit some common LineageOS stuff.
+$(call inherit-product, vendor/lineage/config/common_full_tablet_wifionly.mk)
 
-LOCAL_PATH := $(call my-dir)
+# Inherit some common AOSP stuff.
+$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base.mk)
 
-include $(call all-makefiles-under,$(LOCAL_PATH))
+# Inherit full configuration for nx + LineageOS additions.
+include device/nintendo/nx/lineage.mk
+$(call inherit-product, device/nintendo/nx/full_nx.mk)
 
-endif
+PRODUCT_NAME := lineage_nx_tab
+PRODUCT_DEVICE := nx_tab
