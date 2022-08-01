@@ -21,8 +21,6 @@ import os
 
 APP_PART     = '/dev/block/by-name/APP'
 DTB_PART     = '/dev/block/by-name/DTB'
-STAGING_PART = '/dev/block/by-name/USP'
-VBMETA_PART  = '/dev/block/by-name/vbmeta'
 VENDOR_PART  = '/dev/block/by-name/vendor'
 NX_FILES     = '/dev/block/platform/sdhci-tegra.0/by-num/p1/switchroot/android/'
 NX_BL_CONFIG = '/dev/block/platform/sdhci-tegra.0/by-num/p1/bootloader/ini/'
