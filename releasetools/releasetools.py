@@ -29,7 +29,7 @@ NX_BL_CONFIG = '/dev/block/platform/sdhci-tegra.0/by-num/p1/bootloader/ini/'
 
 DTSFILENAME_PATH    = '/proc/device-tree/nvidia,dtsfilename'
 
-NX_BL_VERSION    = '2020.04-03755-gf4d532d00d-rev3'
+NX_BL_VERSION    = '2020.04-03753-g53ff5d2195-rev6'
 
 def FullOTA_PostValidate(info):
   if 'INSTALL/bin/resize2fs_static' in info.input_zip.namelist():
