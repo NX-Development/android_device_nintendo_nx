@@ -18,7 +18,7 @@ NX_VENDOR_PATH := ../../../../../vendor/nintendo
 
 include $(CLEAR_VARS)
 LOCAL_MODULE               := reboot_payload
-LOCAL_SRC_FILES            := $(NX_VENDOR_PATH)/hekate.bin
+LOCAL_SRC_FILES            := $(NX_VENDOR_PATH)/bootloader/hekate.bin
 LOCAL_MODULE_SUFFIX        := .bin
 LOCAL_MODULE_CLASS         := ETC
 LOCAL_MODULE_PATH          := $(TARGET_OUT_VENDOR)/firmware/
