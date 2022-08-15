@@ -2,7 +2,7 @@
 # Automatically generated file; DO NOT EDIT.
 # SensorHAL IIO Configuration
 #
-CONFIG_ST_HAL_ANDROID_VERSION=5
+CONFIG_ST_HAL_ANDROID_VERSION=7
 # CONFIG_ST_HAL_HAS_6AX_FUSION is not set
 # CONFIG_ST_HAL_HAS_9AX_FUSION is not set
 # CONFIG_ST_HAL_HAS_GEOMAG_FUSION is not set
