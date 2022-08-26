@@ -43,6 +43,16 @@ $(_uscript_archive):
 include $(BUILD_SYSTEM)/base_rules.mk
 INSTALLED_RADIOIMAGE_TARGET += $(PRODUCT_OUT)/boot.scr
 
+# Uenv
+include $(CLEAR_VARS)
+LOCAL_MODULE        := uenv
+LOCAL_MODULE_SUFFIX := .txt
+LOCAL_SRC_FILES	    := $(NX_VENDOR_PATH)/bootfiles/uenv.txt
+LOCAL_MODULE_CLASS  := ETC
+LOCAL_MODULE_PATH   := $(PRODUCT_OUT)
+include $(BUILD_PREBUILT)
+INSTALLED_RADIOIMAGE_TARGET += $(PRODUCT_OUT)/uenv.txt
+
 include $(CLEAR_VARS)
 LOCAL_MODULE        := coreboot
 LOCAL_MODULE_SUFFIX := .rom
