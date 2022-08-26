@@ -61,9 +61,12 @@ void vendor_set_usb_product_ids(tegra_init *ti)
 
 void vendor_load_properties()
 {
-	//                                              device name      model     id sku api dpi
-	std::vector<tegra_init::devices> devices = { { "nx",   "nx",     "Switch", 20, 1, 27, 320 },
-	                                             { "nx",   "nx_tab", "Switch", 20, 0, 27, 240 } };
+//                                                 device    name     model          id   sku api dpi
+	std::vector<tegra_init::devices> devices = { { "nx",     "icosa", "Switch",      7888, 1, 27, 240 },
+												 { "nx",     "iowa",  "Switch v2",   7888, 1, 27, 240 },
+	                                             { "nx",     "hoag",  "Switch Lite", 7888, 2, 27, 240 },
+	                                             { "nx",     "aula",  "Switch OLED", 7888, 3, 27, 240 } };
+
 
 	tegra_init ti(devices);
 
