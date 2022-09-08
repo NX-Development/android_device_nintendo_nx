@@ -48,8 +48,12 @@ WITH_LINEAGE_CHARGER := false
 # Kernel
 TARGET_KERNEL_SOURCE           := kernel/nvidia/kernel-$(TARGET_TEGRA_KERNEL)-nx
 TARGET_KERNEL_CONFIG           := tegra_android_defconfig
-BOARD_KERNEL_IMAGE_NAME        := Image.gz
 TARGET_KERNEL_ADDITIONAL_FLAGS := "NV_BUILD_KERNEL_OPTIONS=$(TARGET_TEGRA_KERNEL)"
+BOARD_KERNEL_IMAGE_NAME        := Image.gz
+BOARD_KERNEL_LOAD_BASE         := 0x80200000
+BOARD_BOOTIMG_REV              := 0
+BOARD_BOOTIMG_NAME             := NX$(shell echo $(LINEAGE_VERSION) | cut -c 1-4)r$(BOARD_BOOTIMG_REV)
+BOARD_MKBOOTIMG_ARGS           := --base $(BOARD_KERNEL_LOAD_BASE) --board $(BOARD_BOOTIMG_NAME)
 
 # Recovery
 TARGET_RECOVERY_FSTAB        := device/nintendo/nx/initfiles/fstab.nx
