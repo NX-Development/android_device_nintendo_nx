@@ -14,9 +14,10 @@
 
 TARGET_TEGRA_POWER ?= lineage
 
-# Boot Animation
-TARGET_SCREEN_HEIGHT := 1920
-TARGET_SCREEN_WIDTH := 1080
+# DPI
+TARGET_SCREEN_HEIGHT  := 1280
+TARGET_SCREEN_WIDTH   := 720
+TARGET_SCREEN_DENSITY := 240
 
 # Unified device support
 TARGET_INIT_VENDOR_LIB := //device/nintendo/nx:libinit_nx
