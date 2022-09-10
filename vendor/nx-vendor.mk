@@ -25,4 +25,9 @@ PRODUCT_PACKAGES += \
 	boot.scr \
 	00-android \
 	bootlogo_android \
-	icon_android_hue
+	icon_android_hue \
+	bl31.bin \
+	tegra_rebootstub \
+	tegra_sc7_entry \
+	tegra_sc7_exit \
+	u-boot
