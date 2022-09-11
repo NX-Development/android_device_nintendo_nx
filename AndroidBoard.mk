@@ -12,13 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+ifeq ($(TARGET_PREBUILT_KERNEL),)
 INSTALLED_KERNEL_TARGET := $(PRODUCT_OUT)/kernel
+INSTALLED_RECOVERYIMAGE_TARGET := $(PRODUCT_OUT)/recovery.img
 
-DTB_TARGETS := tegra210-icosa.dtb
-INSTALLED_DTB_TARGETS := $(DTB_TARGETS:%=$(PRODUCT_OUT)/install/%)
-$(INSTALLED_DTB_TARGETS): $(INSTALLED_KERNEL_TARGET) | $(ACP)
-	echo -e ${CL_GRN}"Copying individual DTBs"${CL_RST}
+INSTALLED_DTBIMAGE_TARGET := $(PRODUCT_OUT)/install/nx.dtb.img
+
+$(INSTALLED_DTBIMAGE_TARGET): $(INSTALLED_KERNEL_TARGET) | mkdtimg
+	echo -e ${CL_GRN}"Building nx DTImage"${CL_RST}
 	@mkdir -p $(PRODUCT_OUT)/install
-	cp $(@F:%=$(KERNEL_OUT)/arch/arm64/boot/dts/%) $(PRODUCT_OUT)/install/
+	$(HOST_OUT_EXECUTABLES)/mkdtimg create $@ --id=7888 --page_size=0x1000 \
+		$(KERNEL_OUT)/arch/arm64/boot/dts/$(DTB_SUBFOLDER)/tegra210-icosa.dtb --custom0=0x0
 
-ALL_DEFAULT_INSTALLED_MODULES += $(INSTALLED_DTB_TARGETS)
+ALL_DEFAULT_INSTALLED_MODULES += $(INSTALLED_DTBIMAGE_TARGET)
+endif
