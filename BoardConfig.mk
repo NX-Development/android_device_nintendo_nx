@@ -28,7 +28,7 @@ TARGET_COPY_OUT_VENDOR             := vendor
 BOARD_BUILD_SYSTEM_ROOT_IMAGE      := true
 
 # Assert
-TARGET_OTA_ASSERT_DEVICE := nx,nx_tab
+TARGET_OTA_ASSERT_DEVICE := nx
 
 # Bootloader versions
 TARGET_BOARD_INFO_FILE := device/nintendo/nx/board-info.txt

@@ -23,4 +23,4 @@ include device/nintendo/nx/lineage.mk
 $(call inherit-product, device/nintendo/nx/full_nx.mk)
 
 PRODUCT_NAME := lineage_nx_tab
-PRODUCT_DEVICE := nx_tab
+PRODUCT_DEVICE := nx
