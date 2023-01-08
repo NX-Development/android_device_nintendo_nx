@@ -1,13 +1,56 @@
-scrrev=6
+# Changes WIP, deprecated in favor of inline script
+scrrev=7
+
+# Set defaults env variables if they do not exist.
+setenv boot_dir ${prefix}
+test -n ${id}                   || setenv id SWR-AND
+test -n ${hdmi_fbconsole}       || setenv hdmi_fbconsole 1
+test -n ${uart_port}            || setenv uart_port 0
+test -n ${usb_port}             || setenv usb_port 0
+test -n ${reboot_action}        || setenv reboot_action bootloader
+test -n ${autoboot}             || setenv autoboot 0
+test -n ${autoboot_list}        || setenv autoboot_list 0
+test -n ${usb3_enable}          || setenv usb3_enable 0
+test -n ${4k60_disable}         || setenv 4k60_disable 0
+test -n ${slt_dvfs}             || setenv slt_dvfs 0
+
+# Set logging params for each serial type.
+setenv uarta "no_console_suspend console=ttyS0,115200,8n1 loglevel=8"
+setenv uartb "no_console_suspend console=ttyS1,115200,8n1 loglevel=8"
+setenv uartc "no_console_suspend console=ttyS2,115200,8n1 loglevel=8"
+setenv usblg "console=ttyGS0,115200,8n1 loglevel=8"
+setenv nocon "console=null loglevel=5"
+
+# Default read addresses.
+# fdt_addr_r     0x8d000000
+# scriptaddr     0x8fe00000
+# ramdisk_addr_r 0x92000000
+
+# Set important addresses.
+setenv kernload 0xA0000000
+setenv fdtrload 0xA8000000
+setenv fdtraddr 0x8d000000
+
+# Set temp addresses.
+setenv fdtovaddr 0x8d200000
+
+# Set SoC info.
+if test ${t210b01} = 1; then setenv plat_info T210B01; else setenv plat_info T210; fi
+
+# Set SKU info.
+if   test ${sku} = 0; then setenv hw_sku odin && setenv sku_id 0x4F44494E && setenv sku_rev 0
+elif test ${sku} = 1; then setenv hw_sku odin && setenv sku_id 0x4F44494F && setenv sku_rev b01
+elif test ${sku} = 2; then setenv hw_sku vali && setenv sku_id 0x56414C49 && setenv sku_rev 0
+elif test ${sku} = 3; then setenv hw_sku frig && setenv sku_id 0x46524947 && setenv sku_rev 0; fi
+
+# Print platform info.
+echo PLAT:   ${plat_info} SKU: ${hw_sku} REV: ${}
+echo Serial: ${device_serial}
+echo BT MAC: ${device_bt_mac}
+echo WF MAC: ${device_wifi_mac}
 
 # SD is always bootfile mmc
 setenv sdmmc_idx 1
-
-# Load uenv.txt
-if fatload mmc ${sdmmc_idx}:1 0x8f000000 switchroot/android/uenv.txt; then
-	env import -t 0x8f000000 ${filesize};
-    echo Successfully imported uenv.txt...
-fi
 
 setenv mmc_idx 1
 
@@ -32,30 +75,36 @@ setenv fastboot_partition_alias_dtb DTB
 # load fastboot first so 'fastboot continue' works
 gpio input 191 || fastboot 0
 
-# store main MMC serial number to use as device serial
-mmc info serial#
-
 # generate a uboot version we can assert against in recovery
-setexpr ver_simple gsub "U-Boot (.*) \\(.*\\)" "\\1-rev$scrrev" "$ver"
+setexpr ver_simple gsub "U-Boot (.*) \\(.*\\)" "\\1-rev${scrrev}" "${ver}"
 
 # find root partition and convert to decimal
-part number mmc $mmc_idx APP app_part_num
-setexpr app_part_num_dec gsub "^0x1$" 1 $app_part_num
-setexpr app_part_num_dec gsub "^0x2$" 2 $app_part_num
-setexpr app_part_num_dec gsub "^0x3$" 3 $app_part_num
-setexpr app_part_num_dec gsub "^0x4$" 4 $app_part_num
-setexpr app_part_num_dec gsub "^0x5$" 5 $app_part_num
-setexpr app_part_num_dec gsub "^0x6$" 6 $app_part_num
-setexpr app_part_num_dec gsub "^0x7$" 7 $app_part_num
-setexpr app_part_num_dec gsub "^0x8$" 8 $app_part_num
-setexpr app_part_num_dec gsub "^0x9$" 9 $app_part_num
-setexpr app_part_num_dec gsub "^0xa$" 10 $app_part_num
-setexpr app_part_num_dec gsub "^0xb$" 11 $app_part_num
-setexpr app_part_num_dec gsub "^0xc$" 12 $app_part_num
-setexpr app_part_num_dec gsub "^0xd$" 13 $app_part_num
-setexpr app_part_num_dec gsub "^0xe$" 14 $app_part_num
-setexpr app_part_num_dec gsub "^0xf$" 15 $app_part_num
-setexpr app_part_num_dec gsub "^0x10$" 16 $app_part_num
+part number mmc ${mmc_idx} APP app_part_num
+part uuid mmc ${mmc_idx}:${app_part_num} app_part_uuid
+
+echo doing dtb shit
+# load dtb
+part start mmc $mmc_idx DTB dtb_part_start
+part size mmc $mmc_idx DTB dtb_part_size
+
+echo loading dtimg
+# Load DT img.
+if mmc read ${fdtrload} ${dtb_part_start} ${dtb_part_size}; then echo Device Tree Image loaded
+else echoe Device Tree Image read failed!; echoe Rebooting in 10s..; sleep 10; reset; fi
+
+echo getting dtimg
+# Get DT from image. If failed, reset.
+if dtimg load ${fdtrload} ${sku} ${fdtraddr} fdtrsize; then echo Device Tree for SKU ${hw_sku} loaded
+else echoe Device Tree load for SKU ${hw_sku} failed!; echoe Rebooting in 10s..; sleep 10; reset; fi
+
+if test ${sku_rev} > 0; then setexpr hw_sku "m" + ${hw_sku}; fi
+
+# Set dtb address and size from above.
+fdt addr ${fdtraddr} ${fdtrsize}
+
+# Set default macs, to be overridden by joycons
+if test -n ${device_bt_mac};   then bt_mac=${device_bt_mac}; fi
+if test -n ${device_wifi_mac}; then wifi_mac=${device_wifi_mac}; fi
 
 host_mac_addr=0xff
 
@@ -65,92 +114,98 @@ if fatload mmc ${sdmmc_idx}:1 0x90000000 switchroot/joycon_mac.bin; then
         echo Left JoyCon is available
         host_mac_addr=0x90000007
     else
-        echo \\e Left JoyCon pairing info is not available!
+        echoe Left JoyCon pairing info is not available!
     fi
 
     if itest.b *0x9000001d == 0x02; then
         echo Right JoyCon is available
         host_mac_addr=0x90000024
     else
-        echo \\e Right JoyCon pairing info is not available!
+        echoe Right JoyCon pairing info is not available!
     fi
 fi
 
-if itest $host_mac_addr == 0xff; then
+if itest.b $host_mac_addr == 0xff; then
     echo No JoyCons available
-
-    # write to a known good location
-    mw.q 0x90000000 ${serial#} 1
-
-    # write crc32 of value at offset 0x3
-    crc32 0x90000000 8 0x90000003
-
-    # write nintendo prefix
-    mw.b 0x90000000 0x98 1
-    mw.b 0x90000001 0xE8 1
-    mw.b 0x90000002 0xFA 1
-
-    # use this to generate mac
-    host_mac_addr=0x90000000
-fi
-
-bt_mac=""
-sep=""
-for i in 0 1 2 3 4 5 ; do
-    setexpr x $host_mac_addr + $i
-    setexpr.b b *$x
-    if itest $b <= f; then
-        # There is no way to have leading zeros, so do this hack
-        bt_mac="$bt_mac${sep}0$b"
-    else
-        bt_mac="$bt_mac$sep$b"
-    fi
-    sep=":"
-done
-
-# FIXME after hekate gets wifi mac reading
-setexpr.b last_byte *0x90000005
-if itest $last_byte == 0xFF; then
-    # wrap around case
-    setexpr wifi_mac gsub "(.*:.*:.*:.*:.*:).*" "\\100" $bt_mac
 else
-    setexpr.b wb $last_byte + 1
-    if itest $wb <= f; then
-        setexpr wifi_mac gsub "(.*:.*:.*:.*:.*:).*" "\\10$wb" $bt_mac
+    echo Generating MAC addresses with JoyCon pairing info
+    bt_mac=""
+    sep=""
+    for i in 0 1 2 3 4 5 ; do
+        setexpr x $host_mac_addr + $i
+        setexpr.b b *$x
+        if itest $b <= f; then
+            # There is no way to have leading zeros, so do this hack
+            bt_mac="$bt_mac${sep}0$b"
+        else
+            bt_mac="$bt_mac$sep$b"
+        fi
+        sep=":"
+    done
+
+    setexpr.b last_byte *0x90000005
+    if itest $last_byte == 0xFF; then
+        # wrap around case
+        setexpr wifi_mac gsub "(.*:.*:.*:.*:.*:).*" "\\100" $bt_mac
     else
-        setexpr wifi_mac gsub "(.*:.*:.*:.*:.*:).*" "\\1$wb" $bt_mac
+        setexpr.b wb $last_byte + 1
+        if itest $wb <= f; then
+            setexpr wifi_mac gsub "(.*:.*:.*:.*:.*:).*" "\\10$wb" $bt_mac
+        else
+            setexpr wifi_mac gsub "(.*:.*:.*:.*:.*:).*" "\\1$wb" $bt_mac
+        fi
     fi
 fi
 
-# Set extra bootargs to kill console and set default loglevel
-setenv bootargs_extra "console=null loglevel=5"
-
-# load dtb
-part start mmc $mmc_idx DTB dtb_part_start
-part size mmc $mmc_idx DTB dtb_part_size
-
-mmc read $fdt_addr_r $dtb_part_start $dtb_part_size
-
-fdt addr $fdt_addr_r
-
-# Load overlays based on uenv.txt
-if test -n ${overlays}; then
-    for ov in ${overlays}; do
-        echo overlaying ${ov}...
-        fdt resize 8192
-
-        if fatload mmc ${sdmmc_idx}:1 0x8f000000 switchroot/overlays/${ov}.dtbo && fdt apply 0x8f000000; then
-            echo Successfully loaded ${ov}.dtbo...
-            if test "${ov}" = "tegra210-UART-B-overlay"; then
-                # Override bootargs_extra for extra logging with UART overlay
-                setenv bootargs_extra "no_console_suspend androidboot.console=ttyS1 console=ttyS1,115200,8n1 loglevel=8"
-            fi
-        else
-            # Error on failure to apply
-            echo \\e failed to overlay ${ov}!; sleep 5; reset
-        fi
-    done
+# Add additional bootargs for UART Logging.
+if   test ${uart_port} = 1; then
+	setenv bootargs_extra "${bootargs_extra} ${uarta}"; echoe Enabled UART-A logging
+	fdt set /serial@70006000 compatible nvidia,tegra20-uart
+	fdt set /serial@70006000 status okay
+    setenv androidcon ${androidcon}:ttyS0
+elif test ${uart_port} = 2; then
+	setenv bootargs_extra "${bootargs_extra} ${uartb}"; echoe Enabled UART-B logging
+	fdt set /serial@70006040 compatible nvidia,tegra20-uart
+	fdt set /serial@70006040/joyconr status disabled
+    setenv androidcon ${androidcon}:ttyS1
+elif test ${uart_port} = 3; then
+	setenv bootargs_extra "${bootargs_extra} ${uartc}"; echoe Enabled UART-C logging
+	fdt set /serial@70006200 compatible nvidia,tegra20-uart
+	fdt set /serial@70006200/joyconl status disabled
+    setenv androidcon ${androidcon}:ttyS2
+else
+    # Kill console and set default loglevel
+    setenv bootargs_extra "${bootargs_extra} ${nocon}"
+    setenv androidcon ""
 fi
+
+# Add additional bootargs for Serial USB.
+if test ${usb_port} = 1; then
+    echo Enabled USB Serial logging
+	setenv bootargs_extra ${usblg} ${bootargs_extra}
+    setenv androidcon ${androidcon}:ttyGS0
+fi
+
+# Set androidboot console arg
+setenv bootargs_extra "${bootargs_extra} androidboot.console=${androidcon}"
+
+# Resize fdt for changes
+fdt resize 16384
+
+# Patch dtb with overlays if they exist.
+if test -n ${dtb_overlays}; then
+	echo loading dtb overlays: ${dtb_overlays}
+	for ov in ${dtb_overlays}; do
+		echo Setting ${ov}...
+
+		# Check if DT overlay and apply it.
+		if load mmc ${sdmmc_idx}:1 ${fdtovaddr} ${boot_dir}/overlays/${ov}.dtbo; then
+			if fdt apply ${fdtovaddr}; then echo Successfully loaded ${ov}.dtbo...
+			else echoe Overlay ${ov}.dtbo loading failed!; echoe Rebooting in 10s..; sleep 10; reset; fi
+		fi
+	done
+fi
+
 
 # Patch DT on eMMC boot
 if test -n ${emmc}; then
@@ -164,48 +219,90 @@ fi
 fdt set /chosen nvidia,wifi-mac ${wifi_mac}
 fdt set /chosen nvidia,bluetooth-mac ${bt_mac}
 
-# Prepare display panel id from Nyx.
-cp.b 0xED838002 0xED838001 0x1
-mw.b 0xED838002 0x0 0x1
-
 # Get display panel handle.
-if itest.w *0xED838000 == 0xf20; then echo Display is INNO; fdt get value DHANDLE /host1x@50000000/dsi/panel-i-720p-6-2 phandle
-elif itest.w *0xED838000 == 0xf30; then echo Display is AUO; fdt get value DHANDLE /host1x@50000000/dsi/panel-a-720p-6-2 phandle
-elif itest.b *0xED838000 == 0x10; then echo Display is JDI; fdt get value DHANDLE /host1x@50000000/dsi/panel-j-720p-6-2 phandle
-else Display is Unknown; fi
+if   test ${display_id} = f20;  then echo Display is INN 6.2; fdt get value DHANDLE /host1x/dsi/panel-i-720p-6-2 phandle
+elif test ${display_id} = f30;  then echo Display is AUO 6.2; fdt get value DHANDLE /host1x/dsi/panel-a-720p-6-2 phandle
+elif test ${display_id} = 10;   then echo Display is JDI 6.2; fdt get value DHANDLE /host1x/dsi/panel-j-720p-6-2 phandle
+elif test ${display_id} = 1020; then echo Display is INN 5.5; fdt get value DHANDLE /host1x/dsi/panel-i-720p-5-5 phandle
+elif test ${display_id} = 1030; then echo Display is AUO 5.5; fdt get value DHANDLE /host1x/dsi/panel-a-720p-5-5 phandle
+elif test ${display_id} = 1040; then echo Display is SHP 5.5; fdt get value DHANDLE /host1x/dsi/panel-sh-720p-5-5 phandle
+elif test ${display_id} = 2050; then echo Display is SAM 7.0
+elif test ${sku} = 3;      then echo Display is SAM 7.0
+else echoe Unknown Display ID: ${display_id}!; fi
 
 # Set new active display panel handle.
 if test -n ${DHANDLE}; then echo Setting Display panel; fdt resize 8192; fdt set /host1x@50000000/dsi nvidia,active-panel <$DHANDLE>; fi
 
+# Disable USB3.
+if test ${usb3_enable} = 0; then
+	echo USB3 disabled
+	fdt get value DHANDLE_USB2 /xusb_padctl@7009f000/pads/usb2/lanes/usb2-0 phandle
+	fdt set /xusb@70090000 phys <$DHANDLE_USB2>
+	fdt set /xusb@70090000 phy-names usb2-0
+	fdt set /xudc@700d0000 phys <$DHANDLE_USB2>
+	fdt set /xudc@700d0000 phy-names usb2
+	fdt set /xusb_padctl@7009f000 usb3-no-mapping-war <0x1>
+	fdt set /xusb_padctl@7009f000/ports/usb2-0 nvidia,usb3-port-fake <0xffffffff>
+	fdt set /xusb_padctl@7009f000/ports/usb3-0 status disabled
+else
+	echoe USB3 enabled
+fi
+
+# Disable 4 DP lanes on Frig.
+if test ${sku} = 3 -a ${4k60_disable} = 1 -a ${usb3_enable} != 0; then
+	echoe 4K60 disabled
+	fdt set /i2c@7000c000/bm92t@18 rohm,dp-lanes <2>
+fi
+
+# Check if SD is initialized in 1-bit mode.
+if test "${sd_1bit}" = 1; then
+	echoe SD Card is initialized in 1-bit mode!
+	fdt set /sdhci@700b0000 bus-width <0x1>
+	fdt set /sdhci@700b0000 uhs-mask <0x7F>
+fi
+
+# Set battery voltage limit via cell age for Vali.
+if test ${sku} = 2 -a -n "${VLIM}"; then
+	echo VALI: voltage limits [${VLIM}, ${SOCLIM}]
+	fdt set /i2c@7000c000/battery-charger@6b/charger ti,charge-voltage-limit-millivolt <0x$VLIM>
+	fdt set /i2c@7000c000/battery-charger@6b/charger ti,charge-thermal-voltage-limit <0x$VLIM 0x$VLIM 0x$VLIM 0xFF0>
+	fdt set /i2c@7000c000/battery-gauge@36 maxim,kernel-maximum-soc <0x$SOCLIM>
+fi
+
+# Enable SLT DVFS.
+if test ${slt_dvfs} = 1; then
+	echoe SLT DVFS enabled
+	setenv bootargs_extra "${bootargs_extra} speedo_tegra210.cspd_id=2 speedo_tegra210.cspd_id=2 speedo_tegra210.gspd_id=2"
+fi
+
 # Set common bootargs
-setenv bootargs_path "init=/init nvdec_enabled=0 usbcore.autosuspend=-1 log_buf_len=4M androidboot.bootloader=${ver_simple} androidboot.hardware=nx androidboot.hardware.sku=icosa androidboot.selinux=permissive androidboot.serialno=${serial#} androidboot.modem=none pcie_aspm=off vpr_resize pmc_reboot2payload.default_payload=reboot_payload.bin pmc_reboot2payload.reboot_action=via-payload pmc_reboot2payload.hekate_config_id=SWANDR pmc_reboot2payload.enabled=1 tegra_fbmem=0x800000@0xf5a00000"
+setenv bootargs_path "{bootargs_extra} init=/init nvdec_enabled=0 usbcore.autosuspend=-1 log_buf_len=8M androidboot.bootloader=${ver_simple} androidboot.hardware=nx \
+                      androidboot.hardware.sku=${hw_sku} androidboot.selinux=permissive androidboot.serialno=${device_serial} androidboot.modem=none \
+                      pcie_aspm=off vpr_resize pmc_r2p.enabled=1 pmc_r2p.entry_id=${hekate_id} fbcon=map:${fbconsole} tegra_fbmem=0x800000@0xf5a00000"
 
 # gpio 190 = VOL_UP, 191 = VOL_DOWN
 if gpio input 190 && test ${recovery} = "0"; then
     # normal boot
-    part start mmc ${mmc_idx} LNX root_part_start
-    part size mmc ${mmc_idx} LNX root_part_size
+    part start mmc ${mmc_idx} LNX kernel_part_start
+    part size mmc ${mmc_idx} LNX kernel_part_size
 
-    setenv bootargs "${bootargs_extra} ${bootargs_path} skip_initramfs ro rootwait root=/dev/mmcblk0p${app_part_num_dec} firmware_class.path=/vendor/firmware bluetooth.disable_ertm=1 "
-
-    mmc read 0x98000000 $root_part_start $root_part_size
-
-    bootm 0x98000000 0x98000000 0x8d000000
+    setenv bootargs "${bootargs_path} skip_initramfs ro rootwait root=PARTUUID=${app_part_uuid} firmware_class.path=/vendor/firmware \
+    bluetooth.disable_ertm=1 "
 else
     # recovery
-    part start mmc ${mmc_idx} SOS root_part_start
-    part size mmc ${mmc_idx} SOS root_part_size
+    part start mmc ${mmc_idx} SOS kernel_part_start
+    part size mmc ${mmc_idx} SOS kernel_part_size
 
-    setenv bootargs "${bootargs_extra} ${bootargs_path} firmware_class.path=/etc/firmware "
-
-    mmc read 0x98000000 $root_part_start $root_part_size
-
-    bootm 0x98000000 0x98000000 0x8d000000
+    setenv bootargs "${bootargs_path} firmware_class.path=/etc/firmware "
 fi
 
-echo \\e Failed to launch kernel!
-echo \\e
-echo \\e Rebooting in 10s...
+mmc read ${kernload} ${kernel_part_start} ${kernel_part_size}
+
+bootm ${kernload} - ${fdtraddr}
+
+echoe Failed to launch kernel!
+echoe  
+echoe Rebooting in 10s...
 
 sleep 10
 reset
