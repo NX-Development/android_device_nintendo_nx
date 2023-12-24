@@ -19,7 +19,6 @@ package org.lineageos.settings.device;
 import android.content.SharedPreferences;
 import android.os.RemoteException;
 import android.util.Log;
-import android.view.IWindowManager;
 
 import java.io.FileOutputStream;
 import java.io.FileInputStream;
@@ -68,7 +67,7 @@ public class DisplayUtils {
     }
 
     public static void setDisplayMode(int display, INvDisplay displayService,
-                IWindowManager windowManager, SharedPreferences sharedPrefs) {
+                SharedPreferences sharedPrefs) {
         int index = 0; // default 0 for internal
 
         try {
@@ -92,8 +91,6 @@ public class DisplayUtils {
             displayService.modeDefaultCommit(display);
             displayService.modeDefaultStore(display);
             displayService.modeUpdate(display);
-            windowManager.updateRotation(true, true);
-
         } catch (RemoteException e) {
             Log.e(TAG, "Failed to set mode!");
         }
